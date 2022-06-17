@@ -1,0 +1,6 @@
+version: '2'
+services:
+  amazon-keyspaces-with-apache-kafka:
+    platform: linux/amd64
+    build: .
+    image: amazon-keyspaces-with-apache-kafka:latest
