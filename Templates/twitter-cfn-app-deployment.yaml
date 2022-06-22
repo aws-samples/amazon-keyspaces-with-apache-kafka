@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twitter-eks-app
+  namespace: eks-msk-twitter
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: twitter-eks-app
+          image: 806194172099.dkr.ecr.us-east-1.amazonaws.com/amazon-keyspaces-with-apache-kafka:latest
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -Dbearer.token= < Twitter Bearer token > -Dkafka.broker= < KAFKA cluster ARN >            
+          ports:
+            - containerPort: 80
