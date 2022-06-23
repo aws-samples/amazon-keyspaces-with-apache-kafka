@@ -1,0 +1,68 @@
+{
+    "connectorName": "kafka-AmazonKeyspaces-sink-connector",
+    "kafkaConnectVersion": "2.7.1",
+    "serviceExecutionRoleArn": "arn:aws:iam::806194172099:role/KafkaConnectRole",
+    "plugins": [
+        {
+            "customPlugin": {
+                "customPluginArn": " < customPluginArn > ",
+                "revision": 1
+            }
+        }
+    ],
+    "capacity": {
+        "provisionedCapacity": {
+            "workerCount": 4,
+            "mcuCount": 4
+        }
+    },
+    "kafkaCluster": {
+        "apacheKafkaCluster": {
+            "bootstrapServers": "< KAFKA cluster ARN >",
+            "vpc": {
+                "subnets": [
+                    "< PrivateSubnetOne >",
+                    "< PrivateSubnetTwo >",
+                    "< PrivateSubnetThree >"
+                ],
+                "securityGroups": ["< MSKSecurityGroupID >"]
+            }
+        }
+    },
+    "kafkaClusterClientAuthentication": {"authenticationType": "NONE"},
+    "kafkaClusterEncryptionInTransit": {"encryptionType": "PLAINTEXT"},
+    "logDelivery": {
+        "workerLogDelivery": {
+            "cloudWatchLogs": {
+                "logGroup": "blogpost-eks-msk-aks",
+                "enabled": true
+            }
+        }
+    },
+    "connectorConfiguration": {
+        "connector.class":"com.datastax.oss.kafka.sink.CassandraSinkConnector",
+        "datastax-java-driver.basic.contact-points": "< vpc-enpoint >:9142",
+        "datastax-java-driver.basic.load-balancing-policy.local-datacenter":"us-east-1",
+        "auth.provider":"PLAIN",
+        "auth.username": "< keyspaces-user >",
+        "auth.password": "< password >",
+        "tasks.max":"10",
+        "topics":"twitter_input",
+        "ssl.provider":"OpenSSL",
+        "offset.flush.interval.ms":"10000",       
+        "connectionPoolLocalSize":"4",
+        "maxNumberOfRecordsInBatch": "30",
+        "ssl.hostnameValidation": "false",
+        "queryExecutionTimeout":"60",
+        "topic.twitter_input.aws_blog.tweet_by_hashtag.deletesEnabled":"false",
+        "topic.twitter_input.aws_blog.tweet_by_hashtag.consistencyLevel":"LOCAL_QUORUM",
+        "topic.twitter_input.aws_blog.tweet_by_hashtag.query":"INSERT INTO aws_blog.tweet_by_hashtag(hashtag,tweet_id,tweet,lang,username,tweet_time) VALUES (:tag,:id,:text,:lang,:username,:timestamp) USING TTL 10000;",
+        "topic.twitter_input.aws_blog.tweet_by_hashtag.mapping": "tag=value.hashtag, text=value.text, id=value.id, timestamp=value.createdAt, username=value.username, lang=value.lang",
+        "topic.twitter_input.aws_blog.tweet_by_user.deletesEnabled":"false",
+        "topic.twitter_input.aws_blog.tweet_by_user.consistencyLevel":"LOCAL_QUORUM",
+        "topic.twitter_input.aws_blog.tweet_by_user.query":"INSERT INTO aws_blog.tweet_by_user(hashtag,tweet_id,tweet,lang,username,tweet_time) VALUES (:tag,:id,:text,:lang,:username,:timestamp) USING TTL 10000;",
+        "topic.twitter_input.aws_blog.tweet_by_user.mapping": "tag=value.hashtag, text=value.text, id=value.id, timestamp=value.createdAt, username=value.username, lang=value.lang",
+        "datastax-java-driver.advanced.connection.init-query-timeout": "300",
+        "datastax-java-driver.advanced.control-connection.timeout": "300"
+    }
+}

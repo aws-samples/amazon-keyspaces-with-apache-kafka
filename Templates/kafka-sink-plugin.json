@@ -1,0 +1,10 @@
+{
+    "name": "kafka-keyspaces-sink-plugin",
+    "contentType": "ZIP",
+    "location": {
+        "s3Location": {
+            "bucketArn": "arn:aws:s3:::blog-eks-msk-aks",
+            "fileKey": "kafka-connect-cassandra-sink-1.4.0.zip"
+        }
+    }
+}
