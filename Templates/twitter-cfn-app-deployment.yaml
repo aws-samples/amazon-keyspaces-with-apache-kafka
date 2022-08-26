@@ -18,6 +18,6 @@ spec:
           image: ECR_Rep:latest
           env:
             - name: JAVA_TOOL_OPTIONS
-              value: -Dbearer.token=AAAAAAAAAAAAAAAAAAAAAKLJPgEAAAAALRVTXjIEn418AI4w7pPT%2FdF15pg%3D2Ob2C7jcIMFWjCk8VOFYo2Xzr6sDiU4Az6mFP5ooEftFw6mSl1 -Dkafka.broker=bootstrap_brokers           
+              value: -Dbearer.token=<< Bearer Token >> -Dkafka.broker=bootstrap_brokers           
           ports:
             - containerPort: 80
