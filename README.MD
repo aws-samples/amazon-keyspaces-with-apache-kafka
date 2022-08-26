@@ -130,3 +130,10 @@ CQL Query to get user specific tweet data
 ```
 SELECT * FROM aws_blog. tweet_by_user where username = ‘awscloud’;
 ```
+
+## DELETE the stack
+
+**Run the following command to initiate delete stack script**
+```
+sh delete-stack.sh
+```
