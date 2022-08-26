@@ -32,6 +32,11 @@ public class AppConfig {
     props.put(BOOTSTRAP_SERVERS_CONFIG, KAFKA_BRK);
     props.put(KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     props.put(VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    props.put("security.protocol", "SASL_SSL");
+    props.put("sasl.mechanism", "AWS_MSK_IAM");
+    props.put("sasl.jaas.config", "software.amazon.msk.auth.iam.IAMLoginModule required;");
+    props.put("sasl.client.callback.handler.class", "software.amazon.msk.auth.iam.IAMClientCallbackHandler");
+
 
     return props;
   }

@@ -31,9 +31,7 @@ Mappings:
      CIDR: 10.0.0.0/24
   RegionAMI:
     us-east-1:
-      HVM64: ami-0d5eff06f840b45e9
-    us-west-2:
-      HVM64: ami-0cf6f5c8a62fa5da6
+      HVM64: ami-0e7375e22561b4d0a
   
 Resources:
   VPC:
@@ -245,28 +243,23 @@ Resources:
             - KafkaClientInstanceSecurityGroup
             - GroupId
         - IpProtocol: tcp
-          FromPort: 9094
-          ToPort: 9094
+          FromPort: 9092
+          ToPort: 9098
           SourceSecurityGroupId: !GetAtt
             - KafkaClientInstanceSecurityGroup
             - GroupId
         - IpProtocol: tcp
           FromPort: 9092
-          ToPort: 9092
-          SourceSecurityGroupId: !GetAtt
-            - KafkaClientInstanceSecurityGroup
-            - GroupId
-        - IpProtocol: tcp
-          FromPort: 9092
-          ToPort: 9092
+          ToPort: 9098
           SourceSecurityGroupId: !GetAtt
             - EksSecurityGroup
             - GroupId
+        
   ### Log group for the blog testing
   BlogLogGroup:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName: blogpost-eks-msk-aks
+      LogGroupName: eks-msk-aks
       RetentionInDays: 7
       Tags:
         - Key: Name
@@ -298,34 +291,70 @@ Resources:
         #!/bin/bash
 
         yum update -y
-
-        yum install java-1.8.0-openjdk-devel -y
-
+        
+        yum install -y java-11-openjdk-devel.x86_64
+        
         yum install -y jq
 
         cd /home/ec2-user
 
         echo "export PATH=.local/bin:$PATH" >> .bash_profile
-
+        
         mkdir kafka
-
+        
         cd kafka
-
+        
         wget https://archive.apache.org/dist/kafka/2.6.2/kafka_2.12-2.6.2.tgz
-
+        
         tar -xzf kafka_2.12-2.6.2.tgz
-
+        
         cd /home/ec2-user
-
+        
         chown -R ec2-user ./kafka
-
+        
         chgrp -R ec2-user ./kafka
-
+        
         export REGION=$(curl --silent http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
+        
+        export ZK=$(aws kafka list-clusters --region $REGION --output text | grep arn | grep CLUSTERINFOLIST | grep aws-MSKCluster | awk '{print $9}')
 
-        export ZK=$(aws kafka list-clusters --region $REGION --output text | grep arn | grep CLUSTERINFOLIST | grep aws-blog-MSKCluster | awk '{print $9}')
+        wget -P /home/ec2-user/kafka/kafka_2.12-2.6.2/lib  https://github.com/aws/aws-msk-iam-auth/releases/download/v1.1.1/aws-msk-iam-auth-1.1.1-all.jar 
 
-        kafka/kafka_2.12-2.6.2/bin/kafka-topics.sh --create --zookeeper $ZK --replication-factor 3 --partitions 3 --topic twitter_input
+        cat << EoF > kafka/kafka_2.12-2.6.2/bin/client.properties
+
+        security.protocol=SASL_SSL
+        sasl.mechanism=AWS_MSK_IAM
+        sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required;
+        sasl.client.callback.handler.class=software.amazon.msk.auth.iam.IAMClientCallbackHandler 
+
+        EoF
+        
+        kafka/kafka_2.12-2.6.2/bin/kafka-topics.sh --create --command-config client.properties --zookeeper $ZK --replication-factor 3 --partitions 3 --topic twitter_input
+        
+        curl -L https://downloads.datastax.com/kafka/kafka-connect-cassandra-sink.tar.gz -o kafka-connect-cassandra-sink.tar.gz
+        
+        tar zxf kafka-connect-cassandra-sink.tar.gz
+        
+        zip -r kafka-connect-cassandra-sink.zip kafka-connect-cassandra-sink-1.4.0
+        
+        aws s3 cp --region $REGION kafka-connect-cassandra-sink.zip s3://blog-eks-msk-aks
+        
+        cat << EoF > ./kafka-sink-plugin.json 
+
+        {
+         "name": "kafka-keyspaces-sink-plugin",
+         "contentType": "ZIP",
+         "location": {
+         "s3Location": {
+            "bucketArn": "arn:aws:s3:::blog-eks-msk-aks",
+            "fileKey": "kafka-connect-cassandra-sink-1.4.0.zip"
+            }
+          }
+        }
+        
+        EoF
+        
+        aws kafkaconnect create-custom-plugin --cli-input-json file://kafka-sink-plugin.json --region $REGION
 
 
   EKSRole:
@@ -342,6 +371,14 @@ Resources:
                 - "eks.amazonaws.com"
             Action: 'sts:AssumeRole'
       Path: /
+      Policies:
+        - PolicyName: msk-iam
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "kafka-cluster:*"
+                Resource: '*'
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/AmazonEKSClusterPolicy'
         - 'arn:aws:iam::aws:policy/AmazonEKSServicePolicy'
@@ -358,12 +395,65 @@ Resources:
           - Sid: ''
             Effect: Allow
             Principal:
-              Service: ec2.amazonaws.com
+              Service: 
+                  - "ec2.amazonaws.com"
+                  - "kafkaconnect.amazonaws.com"
+                  - "delivery.logs.amazonaws.com"
             Action: 'sts:AssumeRole'
       Path: /
+      Policies:
+        - PolicyName: mskconnect
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "kafkaconnect:*"
+                Resource: '*'
+      Policies:
+        - PolicyName: msk-iam
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "kafka-cluster:*"
+                Resource: '*'      
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/AmazonMSKFullAccess'
         - 'arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess'
+        - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+  MskRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: 
+                  - "kafkaconnect.amazonaws.com"
+                  - "delivery.logs.amazonaws.com"
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: mskconnect
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "kafkaconnect:*"
+                Resource: '*'
+      Policies:
+        - PolicyName: msk-iam
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "kafka-cluster:*"
+                Resource: '*'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonMSKFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
 
   EC2InstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
@@ -387,7 +477,13 @@ Resources:
         StorageInfo:
           EBSStorageInfo:
             VolumeSize: 50
-      ClusterName: aws-blog-MSKCluster
+      ClusterName: aws-MSKCluster
+      ClientAuthentication:
+        Sasl:
+          Iam: 
+            Enabled: true
+        Unauthenticated: 
+            Enabled: true
       EncryptionInfo:
         EncryptionInTransit:
           ClientBroker: TLS_PLAINTEXT
@@ -435,6 +531,7 @@ Resources:
     Properties:
       ClusterName: eks-twitter-cluster
       NodeRole: !GetAtt EKSRole.Arn
+      NodegroupName: eks-compute
       ScalingConfig:
         MinSize: 2
         DesiredSize: 2
@@ -463,16 +560,38 @@ Resources:
         GroupId: !Ref MSKSecurityGroup
         IpProtocol: tcp
         FromPort: 9092
-        ToPort: 9092
+        ToPort: 9098
         SourceSecurityGroupId: !GetAtt
           - EKSCluster
           - ClusterSecurityGroupId
+# KMS key for Amazon Keyspaces Encryption  
+  KmsKey:
+    Type: "AWS::KMS::Key"
+    Properties:
+      EnableKeyRotation: true
+      MultiRegion: false
+      KeySpec: SYMMETRIC_DEFAULT
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "Enable IAM User Permissions"
+            Effect: "Allow"
+            Principal:
+              AWS:
+                Fn::Join:
+                  - ""
+                  -
+                    - "arn:aws:iam::"
+                    - Ref: "AWS::AccountId"
+                    - ":root"
+            Action: "kms:*"
+            Resource: "*"
 #Private VPC endpoint for Amazon Keyspaces access
   KeyspacesEndpoint:
     Type: AWS::EC2::VPCEndpoint
     DependsOn: MSKConnectorSG
     Properties:
-      ServiceName: !Sub 'com.amazonaws.us-east-1.cassandra'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.cassandra'
       PrivateDnsEnabled: True
       SecurityGroupIds:
         - !Ref MSKSecurityGroup
@@ -491,19 +610,19 @@ Resources:
       Tags:
         - Key: Name
           Value: eks-msk-aks
-  HashtagTable:
+  TweetidTable:
     Type: AWS::Cassandra::Table
     DependsOn: Keyspace
     Properties:
       KeyspaceName: aws_blog
-      TableName: tweet_by_hashtag
+      TableName: tweet_by_tweet_id
       PartitionKeyColumns:
-      - ColumnName: hashtag
-        ColumnType: text
+      - ColumnName: tweet_id
+        ColumnType: bigint
       ClusteringKeyColumns:
       - Column:
-          ColumnName: tweet_id
-          ColumnType: bigint
+          ColumnName: hashtag
+          ColumnType: text
         OrderBy: DESC
       RegularColumns:
       - ColumnName: tweet_time
@@ -514,6 +633,10 @@ Resources:
         ColumnType: TEXT
       - ColumnName: username
         ColumnType: TEXT
+      DefaultTimeToLive: 720000 
+      EncryptionSpecification:
+        EncryptionType: CUSTOMER_MANAGED_KMS_KEY
+        KmsKeyIdentifier: !Ref KmsKey
       Tags:
         - Key: Name
           Value: eks-msk-aks
@@ -540,14 +663,18 @@ Resources:
         ColumnType: TEXT
       - ColumnName: hashtag
         ColumnType: TEXT
+      DefaultTimeToLive: 720000 
+      EncryptionSpecification:
+        EncryptionType: CUSTOMER_MANAGED_KMS_KEY
+        KmsKeyIdentifier: !Ref KmsKey
       Tags:
         - Key: Name
           Value: eks-msk-aks
 
 Outputs:
-  VPCId:
-    Description: The ID of the VPC created
-    Value: !Ref VPC
+  keyspacesVPCId:
+    Description: The ID of the VPC endpoint created
+    Value: !Ref KeyspacesEndpoint
   PublicSubnetOne:
     Description: The name of the public subnet created
     Value: !Ref PublicSubnetOne
@@ -572,16 +699,33 @@ Outputs:
   EKSRoleID:
     Description: The Arn for the EKS Role
     Value: !GetAtt EKSRole.Arn
+  EKSRolename:
+    Description: The name of the EKS Role
+    Value: !Ref EKSRole
+  Ec2Rolename:
+    Description: The name of the EC2 Role
+    Value: !Ref EC2Role
+  Ec2RoleID:
+    Description: The Arn for the Ec2 Role
+    Value: !GetAtt EC2Role.Arn
+  MSKconnectRolename:
+    Description: The name of the msk connect Role
+    Value: !Ref MskRole
+  MSKconnectRoleID:
+    Description: The Arn of the msk connect Role
+    Value: !GetAtt MskRole.Arn
   EKSClusterID:
     Description: The Arn for the EKS cluster
     Value: !Ref EKSCluster    
   BlogMSKClusterArn:
     Description: The Arn for the MSK cluster
     Value: !Ref BlogMSKCluster
-  ECRRepositoryUri:
-    Description: The URI for the ECR Repository
-    Value: !Ref AppEcrRepository.RepositoryUri
-
-  # KeyspacesEndpointIp:
-  #   Description: The Amazon keyspaces vpc endpoint 
-  #   Value: !GetAtt KeyspacesEndpoint.DnsEntries
+  kafkaclinetinstance:
+    Description: The Arn for the MSK cluster
+    Value: !Ref KafkaClientEC2Instance
+  ECRRepository:
+    Description: The ECR Repository
+    Value: !GetAtt AppEcrRepository.RepositoryUri
+  kmsid:
+    Description: The KMS key created for the Amazon Keyspaces Encryption
+    Value: !Ref KmsKey

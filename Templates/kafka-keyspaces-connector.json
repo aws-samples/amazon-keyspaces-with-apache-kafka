@@ -1,11 +1,11 @@
 {
     "connectorName": "kafka-AmazonKeyspaces-sink-connector",
     "kafkaConnectVersion": "2.7.1",
-    "serviceExecutionRoleArn": "arn:aws:iam::806194172099:role/KafkaConnectRole",
+    "serviceExecutionRoleArn": "msk_role",
     "plugins": [
         {
             "customPlugin": {
-                "customPluginArn": " < customPluginArn > ",
+                "customPluginArn": plugin_arn
                 "revision": 1
             }
         }
@@ -18,14 +18,14 @@
     },
     "kafkaCluster": {
         "apacheKafkaCluster": {
-            "bootstrapServers": "< KAFKA cluster ARN >",
+            "bootstrapServers": bootstrap_brokers
             "vpc": {
                 "subnets": [
-                    "< PrivateSubnetOne >",
-                    "< PrivateSubnetTwo >",
-                    "< PrivateSubnetThree >"
+                    "subnet1",
+                    "subnet2",
+                    "subnet3"
                 ],
-                "securityGroups": ["< MSKSecurityGroupID >"]
+                "securityGroups": ["kafka_sg"]
             }
         }
     },
@@ -34,18 +34,18 @@
     "logDelivery": {
         "workerLogDelivery": {
             "cloudWatchLogs": {
-                "logGroup": "blogpost-eks-msk-aks",
+                "logGroup": "eks-msk-aks",
                 "enabled": true
             }
         }
     },
     "connectorConfiguration": {
         "connector.class":"com.datastax.oss.kafka.sink.CassandraSinkConnector",
-        "datastax-java-driver.basic.contact-points": "< vpc-enpoint >:9142",
-        "datastax-java-driver.basic.load-balancing-policy.local-datacenter":"us-east-1",
+        "datastax-java-driver.basic.contact-points": "cassandra.cntpt_dc.amazonaws.com:9142",
+        "datastax-java-driver.basic.load-balancing-policy.local-datacenter":"keyspaces_dc",
         "auth.provider":"PLAIN",
-        "auth.username": "< keyspaces-user >",
-        "auth.password": "< password >",
+        "auth.username": "kafka-keyspaces-user-at-806194172099",
+        "auth.password": "wZCzg29FR0ymiG2ZJ+hr2HotP2CCup5A8NJwCYee53w=",
         "tasks.max":"10",
         "topics":"twitter_input",
         "ssl.provider":"OpenSSL",
@@ -53,16 +53,16 @@
         "connectionPoolLocalSize":"4",
         "maxNumberOfRecordsInBatch": "30",
         "ssl.hostnameValidation": "false",
-        "queryExecutionTimeout":"60",
-        "topic.twitter_input.aws_blog.tweet_by_hashtag.deletesEnabled":"false",
-        "topic.twitter_input.aws_blog.tweet_by_hashtag.consistencyLevel":"LOCAL_QUORUM",
-        "topic.twitter_input.aws_blog.tweet_by_hashtag.query":"INSERT INTO aws_blog.tweet_by_hashtag(hashtag,tweet_id,tweet,lang,username,tweet_time) VALUES (:tag,:id,:text,:lang,:username,:timestamp) USING TTL 10000;",
-        "topic.twitter_input.aws_blog.tweet_by_hashtag.mapping": "tag=value.hashtag, text=value.text, id=value.id, timestamp=value.createdAt, username=value.username, lang=value.lang",
+        "queryExecutionTimeout":"10",
+        "topic.twitter_input.aws_blog.tweet_by_tweet_id.deletesEnabled":"false",
+        "topic.twitter_input.aws_blog.tweet_by_tweet_id.consistencyLevel":"LOCAL_QUORUM",
+        "topic.twitter_input.aws_blog.tweet_by_tweet_id.query":"INSERT INTO aws_blog.tweet_by_tweet_id(hashtag,tweet_id,tweet,lang,username,tweet_time) VALUES (:tag,:id,:text,:lang,:username,:timestamp) USING TTL 259200;",
+        "topic.twitter_input.aws_blog.tweet_by_tweet_id.mapping": "tag=value.hashtag, text=value.text, id=value.id, timestamp=value.createdAt, username=value.username, lang=value.lang",
         "topic.twitter_input.aws_blog.tweet_by_user.deletesEnabled":"false",
         "topic.twitter_input.aws_blog.tweet_by_user.consistencyLevel":"LOCAL_QUORUM",
-        "topic.twitter_input.aws_blog.tweet_by_user.query":"INSERT INTO aws_blog.tweet_by_user(hashtag,tweet_id,tweet,lang,username,tweet_time) VALUES (:tag,:id,:text,:lang,:username,:timestamp) USING TTL 10000;",
+        "topic.twitter_input.aws_blog.tweet_by_user.query":"INSERT INTO aws_blog.tweet_by_user(hashtag,tweet_id,tweet,lang,username,tweet_time) VALUES (:tag,:id,:text,:lang,:username,:timestamp) USING TTL 259200;",
         "topic.twitter_input.aws_blog.tweet_by_user.mapping": "tag=value.hashtag, text=value.text, id=value.id, timestamp=value.createdAt, username=value.username, lang=value.lang",
-        "datastax-java-driver.advanced.connection.init-query-timeout": "300",
-        "datastax-java-driver.advanced.control-connection.timeout": "300"
+        "datastax-java-driver.advanced.connection.init-query-timeout": "60",
+        "datastax-java-driver.advanced.control-connection.timeout": "60"
     }
 }

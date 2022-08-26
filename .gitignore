@@ -148,4 +148,6 @@ fabric.properties
 target/*
 
 # Ignore stack resource Outputs
-stack_output
+Templates/stack_resources_output
+Templates/kafka-keyspaces-connector-template.json
+Templates/twitter-cfn-app-deployment-template.yaml
