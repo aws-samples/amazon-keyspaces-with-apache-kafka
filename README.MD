@@ -1,11 +1,11 @@
-## PRE-REQUISITES
-1.	Have a Bearer Token associated with your Twitter app. To create a developer account, see Get started with the Twitter developer platform.
-2.	AWS Command Line Interface (AWS CLI) version 2. You’ll be using the AWS CLI with the profile and credentials for your AWS account. The credentials are used to access services used in the solution.
-3.	Docker. Used to package applications as portable container images to publish to Amazon Elastic Container Registry (Amazon ECR).
-4.	kubectl the Kubernetes command-line tool which allows you to run commands against Kubernetes clusters.
-5. clone the repository 
+## Prerequisite
+1.	Prepare a bearer token associated with your twitter app. To create a developer account, see a section ["Get started with the Twitter developer platform"](https://developer.twitter.com/en/docs/platform-overview).
+2.	[aws-cli](https://aws.amazon.com/cli/) version 2. You will use aws-cli with the profile and credentials for your AWS account. The solution requires [AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) in order to access AWS services.
+3.	You need to use Docker to package the application as portable container image to publish to Amazon Elastic Container Registry (Amazon ECR).
+4.	kubectl allows you to run commands against [Kubernetes](https://kubernetes.io/) clusters.
+5.  clone the repository 
 
-## Deploy the stack uisng CloudFormation 
+## Deploy the stack using CloudFormation
 
 ***Manaully set the AWS region to use create the stack***
 ```
@@ -16,13 +16,13 @@ export AWS_REGION=us-east-1
 export AWS_REGION=$(aws configure get region)
 ```
 
-**First use AWS CLI to create s3 bucket to store CloudFormation (cfn) template, custom plugins which makes the post deployment cleanup easier**
+**First use aws-cli to create s3 bucket to store cfn template, custom plugins which makes the post deployment cleanup easier**
 
 create the s3 bucket 
 ```
 aws s3api create-bucket --bucket blog-eks-msk-aks 
 ```
-**Switch to Templates folder, deploy the cfn-eks-msk-aks.yml template to create the AWS resources. Deploying the cfn does requires you to pass parameters for ssh key and Ip address range to access the Kafka client instance from**
+**Switch to Templates folder deploy the cfn-eks-msk-aks.yml, the template creates the AWS resources. The cfn requires you to pass parameters for ssh-key and ip address range to access the kafka client instance from**
 
 ```
 cd Templates
@@ -97,7 +97,7 @@ kubectl get pods -n=eks-msk-twitter -o wide
 aws kafkaconnect create-connector --cli-input-json file://kafka-keyspaces-connector.json
 ```
 
-you can use the Amazon Keyspaces CQL console or the cqlsh-expansion library, which extends the existing cqlsh library with additional helpers and best practices for Keyspaces. Use the following command to connect to Keyspaces using the cqlsh-expansion library using the SigV4AuthProvider for short term credentials
+To follow best practices for Amazon Keyspaces you can use the cqlsh-expansion library, which extends the existing cqlsh library with additional helpers or the Amazon Keyspaces CQL console. Use the following command to connect to Amazon Keyspaces using the cqlsh-expansion library with the SigV4AuthProvider for short term credentials
 
 To install and confgure the cqlsh-expansion utility
 ```
@@ -133,7 +133,8 @@ SELECT * FROM aws_blog. tweet_by_user where username = ‘awscloud’;
 
 ## DELETE the stack
 
-**Run the following command to initiate delete stack script**
+**Run the following command to delete the stack**
 ```
-sh delete-stack.sh
+./delete-stack.sh
+
 ```
