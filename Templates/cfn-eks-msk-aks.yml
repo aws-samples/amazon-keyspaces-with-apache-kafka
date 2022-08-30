@@ -31,7 +31,31 @@ Mappings:
      CIDR: 10.0.0.0/24
   RegionAMI:
     us-east-1:
-      HVM64: ami-0e7375e22561b4d0a
+      HVM64: ami-05577ed0e20b23acc
+    us-east-2:
+      HVM64: ami-024a56c3b615774ff
+    us-west-1:
+      HVM64: ami-0b4659d78cb302fd7
+    us-west-2:
+      HVM64: ami-0401f0c3aba47c977
+    eu-west-1:
+      HVM64: ami-0dd3a3853fdd6d881
+    eu-west-2:
+      HVM64: ami-09185ed014c94f88f
+    eu-west-3:
+      HVM64: ami-09d2e5f499c96f3ec
+    eu-north-1:
+      HVM64: ami-01f6ea424a4df90ff
+    eu-central-1:
+      HVM64: ami-08d7c8a4e9c511008      
+    ap-south-1:
+      HVM64: ami-085f6b955743bf0ec
+    ap-southeast-2:
+      HVM64: ami-064f016bd6570e60b
+    ap-southeast-1:
+      HVM64: ami-0e50e3f9e217865a4
+    ap-northeast-1:
+      HVM64: ami-022b0a1c51d8329d4 
   
 Resources:
   VPC:
@@ -290,7 +314,7 @@ Resources:
       UserData: !Base64 >
         #!/bin/bash
 
-        yum update -y && yum install -y java-11-openjdk-devel.x86_64 && yum install -y jq
+        yum update -y && yum install -y java-11-amazon-corretto && yum install -y jq
 
         export WORKING_DIR=/home/ec2-user
         
@@ -343,7 +367,7 @@ Resources:
          "location": {
          "s3Location": {
             "bucketArn": "arn:aws:s3:::blog-eks-msk-aks",
-            "fileKey": "kafka-connect-cassandra-sink-1.4.0.zip"
+            "fileKey": "kafka-connect-cassandra-sink.zip"
             }
           }
         }
@@ -405,7 +429,6 @@ Resources:
               - Effect: Allow
                 Action: "kafkaconnect:*"
                 Resource: '*'
-      Policies:
         - PolicyName: msk-iam
           PolicyDocument:
             Version: "2012-10-17"
@@ -439,7 +462,6 @@ Resources:
               - Effect: Allow
                 Action: "kafkaconnect:*"
                 Resource: '*'
-      Policies:
         - PolicyName: msk-iam
           PolicyDocument:
             Version: "2012-10-17"
