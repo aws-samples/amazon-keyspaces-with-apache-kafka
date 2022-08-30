@@ -1,5 +1,8 @@
 package com.aws.twitter.models;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class Message {
 
     private String createdAt;
@@ -7,9 +10,9 @@ public class Message {
     private String lang;
     private String text;
     private String username;
-    private String hashtag;
+    private Set<String> hashtag;
 
-    public Message(String createdAt, String id, String lang, String text, String username, String hashtag) {
+    public Message(String createdAt, String id, String lang, String text, String username, Set<String> hashtag) {
         this.createdAt = createdAt;
         this.id = id;
         this.lang = lang;
@@ -58,11 +61,11 @@ public class Message {
         this.username = username;
     }
 
-    public String getHashtag() {
+    public Set<String> getHashtag() {
         return hashtag;
     }
 
-    public void setHashtag(String hashtag) {
+    public void setHashtag(Set<String> hashtag) {
         this.hashtag = hashtag;
     }
 

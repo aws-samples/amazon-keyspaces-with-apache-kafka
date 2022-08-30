@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -90,17 +92,22 @@ public class TwitterService {
             var lang = jsonNode.get("data").get("lang").textValue();
             var text = jsonNode.get("data").get("text").textValue();
             var date = jsonNode.get("data").get("created_at").textValue();
+            Set<String> hashtags = new HashSet<String>();
             if (!isEntityEmpty && jsonNode.get("data").get("entities").get("hashtags") != null &&
                     jsonNode.get("data").get("entities").get("mentions") != null) {
                 jsonNode.get("data").get("entities").get("hashtags").forEach(x ->
                 {
-                  Matcher matcher = PATTERN_RT.matcher(text);
+                  hashtags.add(x.get("tag").asText());
+                  LOG.debug("{}", hashtags);
+                });
+                Matcher matcher = PATTERN_RT.matcher(text);
                   var username = "";
                   if (matcher.find()) {
                     username = matcher.group(1);
                   }
-                  Message message = new Message(date, id, lang, text, username, x.get("tag").asText());
                   String serializedMessage = null;
+                  Message message = new Message(date, id, lang, text, username, hashtags);
+
                   try {
                     serializedMessage = objectMapper.writeValueAsString(message);
                   } catch (JsonProcessingException e) {
@@ -110,7 +117,7 @@ public class TwitterService {
                     LOG.debug("{}", message);
                     this.kafkaService.send(serializedMessage);
                   }
-                });
+
             }
 
         }
