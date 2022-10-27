@@ -31,9 +31,8 @@ import static java.util.Objects.requireNonNull;
 
 public class TwitterService {
     private static final Logger LOG = LoggerFactory.getLogger(TwitterService.class);
-    private static Pattern PATTERN = Pattern.compile("^[a-zA-Z0-9]*$_@#");
     private static ObjectMapper objectMapper = new ObjectMapper();
-    private static Pattern PATTERN_RT = Pattern.compile("@(.*?):");
+    private static final Pattern PATTERN_RT = Pattern.compile("@(.*?):");
     private final KafkaService kafkaService;
     private final HttpClient httpClient;
 
@@ -42,10 +41,6 @@ public class TwitterService {
         requireNonNull(httpClient);
         this.kafkaService = kafkaService;
         this.httpClient = httpClient;
-    }
-
-    public static boolean isAlphaNumeric(String s) {
-        return PATTERN.matcher(s).find();
     }
 
     /*
