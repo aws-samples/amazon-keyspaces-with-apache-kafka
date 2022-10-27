@@ -139,20 +139,20 @@ cqlsh-expansion cassandra.$AWS_REGION.amazonaws.com 9142 --ssl --auth-provider "
 CQL Query to get sample data from tweet_by_tweet_id and tweet_by_user tables
 
 ```
-SELECT * FROM aws_blog. tweet_by_tweet_id limit 10;
-SELECT * FROM aws_blog. tweet_by_user limit 10;
+SELECT * FROM aws_blog.tweet_by_tweet_id limit 10;
+SELECT * FROM aws_blog.tweet_by_user limit 10;
 ```
 
 CQL Query to get tweet specific data
 
 ```
-SELECT * FROM aws_blog. tweet_by_tweet_id where tweet_id=1554855502932312066;
+SELECT * FROM aws_blog.tweet_by_tweet_id where tweet_id=1554855502932312066;
 ```
 
 CQL Query to get user specific tweet data
 
 ```
-SELECT * FROM aws_blog. tweet_by_user where username = ‘awscloud’;
+SELECT * FROM aws_blog.tweet_by_user where username = ‘awscloud’;
 ```
 ## DELETE the stack
 Run delete-stack bash script to delete all the resources, created as part of this blog, you can monitor the stack deletion status through console or using awscli

@@ -114,7 +114,7 @@ public class TwitterService {
                     throw new RuntimeException(e);
                   }
                   if (!message.getUsername().isBlank() || !message.getUsername().isEmpty()) {
-                    LOG.debug("{}", message);
+                    LOG.debug("{}", serializedMessage);
                     this.kafkaService.send(serializedMessage);
                   }
 
